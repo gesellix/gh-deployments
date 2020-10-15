@@ -6,6 +6,16 @@ Official docs:
 - https://docs.github.com/en/free-pro-team@latest/rest/guides/delivering-deployments
 - https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#create-a-deployment
 
+## Local Setup
+
+The following parameters are required for every task:
+
+- GitHub Token
+- Owner
+- Repository
+
+Most subcommands require more parameters. The `help` subcommand prints a list of available parameters.
+
 ## Create Deployment
 
 ````shell script
