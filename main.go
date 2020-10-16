@@ -146,6 +146,15 @@ func main() {
 				return err
 			},
 		},
+		{
+			Name:  "measurements",
+			Flags: []cli.Flag{},
+			Action: func(c *cli.Context) error {
+				deployment := pkg.NewMeasurement(ctx, config)
+				_, err := deployment.GetAllDeployments(ctx)
+				return err
+			},
+		},
 	}
 
 	err := app.Run(os.Args)

@@ -9,26 +9,8 @@ import (
 )
 
 type Deployment struct {
-	config Config
-	client *github.Client
-}
-
-func (d *Deployment) Debug(ctx context.Context) error {
-	repo, _, err := d.client.Repositories.Get(ctx, d.config.GithubOwner, d.config.GithubRepo)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		return err
-	}
-	fmt.Printf("deployments url: %s\n", *repo.DeploymentsURL)
-
-	//deployment, _, err := client.Repositories.GetDeployment(ctx, owner, "gh-deployments", 279652485)
-	//if err != nil {
-	//	fmt.Printf("%v\n", err)
-	//	return err
-	//}
-	//fmt.Printf("deployment: %+v\n", deployment)
-
-	return nil
+	config   Config
+	v3client *github.Client
 }
 
 func (d *Deployment) CreateDeployment(ctx context.Context) error {
@@ -38,7 +20,7 @@ func (d *Deployment) CreateDeployment(ctx context.Context) error {
 		Environment:          github.String(d.config.Environment),
 		TransientEnvironment: github.Bool(false),
 	}
-	createdDeployment, _, err := d.client.Repositories.CreateDeployment(ctx, d.config.GithubOwner, d.config.GithubRepo, createDeployment)
+	createdDeployment, _, err := d.v3client.Repositories.CreateDeployment(ctx, d.config.GithubOwner, d.config.GithubRepo, createDeployment)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return err
@@ -55,7 +37,7 @@ func (d *Deployment) UpdateDeploymentStatus(ctx context.Context) error {
 		Description: github.String(d.config.Description),
 		Environment: github.String(d.config.Environment),
 	}
-	deploymentStatus, _, err := d.client.Repositories.CreateDeploymentStatus(ctx, d.config.GithubOwner, d.config.GithubRepo, d.config.DeploymentId, createDeploymentStatus)
+	deploymentStatus, _, err := d.v3client.Repositories.CreateDeploymentStatus(ctx, d.config.GithubOwner, d.config.GithubRepo, d.config.DeploymentId, createDeploymentStatus)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return err
@@ -72,9 +54,8 @@ func NewDeployment(ctx context.Context, config Config) *Deployment {
 	)
 	tc := oauth2.NewClient(ctx, ts)
 
-	var client = github.NewClient(tc)
 	return &Deployment{
-		config: config,
-		client: client,
+		config:   config,
+		v3client: github.NewClient(tc),
 	}
 }
