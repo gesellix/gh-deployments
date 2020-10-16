@@ -23,7 +23,7 @@ $ docker run --rm -it \
   --env GITHUB_TOKEN \
   --env GITHUB_OWNER=gesellix \
   --env GITHUB_REPO=gh-deployments \
-  deploy create \
+  gesellix/gh-deployments create \
   --ref=7d9c662978d50faf7a0ba489fcc94e543f49da61 \
   --description=ein\ test \
   --environment=test
@@ -37,7 +37,7 @@ $ docker run --rm -it \
   --env GITHUB_TOKEN \
   --env GITHUB_OWNER=gesellix \
   --env GITHUB_REPO=gh-deployments \
-  deploy status \
+  gesellix/gh-deployments status \
   --deployment-id=279713949 \
   --log_url=https://www.gesellix.net \
   --state=success \
