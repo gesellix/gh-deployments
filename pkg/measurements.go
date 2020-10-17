@@ -14,6 +14,22 @@ type Measurement struct {
 	v4client *githubv4.Client
 }
 
+var queryAllRepositories struct {
+	Organization struct {
+		Repositories struct {
+			PageInfo struct {
+				HasNextPage bool
+				EndCursor   string
+			}
+			Nodes []struct {
+				Name          string
+				NameWithOwner string
+				Url           string
+			}
+		} `graphql:"repositories(first:100)"`
+	} `graphql:"organization(login: $owner)"`
+}
+
 var queryAllDeployments struct {
 	Repository struct {
 		Name        string
@@ -63,6 +79,28 @@ var queryAllDeployments struct {
 			}
 		} `graphql:"deployments(first: 100, orderBy:{field:CREATED_AT, direction:DESC})"`
 	} `graphql:"repository(owner:$owner, name:$name)"`
+}
+
+func (m *Measurement) GetAllRepositories(ctx context.Context) (interface{}, error) {
+	variables := map[string]interface{}{
+		"owner": githubv4.String(m.config.GithubOwner),
+	}
+	err := m.v4client.Query(ctx, &queryAllRepositories, variables)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil, err
+	}
+
+	// TODO Pagination
+
+	reposJSON, err := json.Marshal(queryAllRepositories)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil, err
+	}
+	fmt.Printf("%s\n", reposJSON)
+
+	return queryAllRepositories, err
 }
 
 func (m *Measurement) GetAllDeployments(ctx context.Context) (interface{}, error) {

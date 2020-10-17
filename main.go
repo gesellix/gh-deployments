@@ -54,8 +54,8 @@ func main() {
 	ctx := context.Background()
 
 	var defaultAction = func(c *cli.Context) error {
-		deployment := pkg.NewDeployment(ctx, config)
-		err := deployment.Debug(ctx)
+		d := pkg.NewDeployment(ctx, config)
+		err := d.Debug(ctx)
 		return err
 	}
 
@@ -99,8 +99,8 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				deployment := pkg.NewDeployment(ctx, config)
-				err := deployment.CreateDeployment(ctx)
+				d := pkg.NewDeployment(ctx, config)
+				err := d.CreateDeployment(ctx)
 				return err
 			},
 		},
@@ -141,8 +141,8 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				deployment := pkg.NewDeployment(ctx, config)
-				err := deployment.UpdateDeploymentStatus(ctx)
+				d := pkg.NewDeployment(ctx, config)
+				err := d.UpdateDeploymentStatus(ctx)
 				return err
 			},
 		},
@@ -150,8 +150,17 @@ func main() {
 			Name:  "measurements",
 			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) error {
-				deployment := pkg.NewMeasurement(ctx, config)
-				_, err := deployment.GetAllDeployments(ctx)
+				m := pkg.NewMeasurement(ctx, config)
+				_, err := m.GetAllDeployments(ctx)
+				return err
+			},
+		},
+		{
+			Name:  "repositories",
+			Flags: []cli.Flag{},
+			Action: func(c *cli.Context) error {
+				m := pkg.NewMeasurement(ctx, config)
+				_, err := m.GetAllRepositories(ctx)
 				return err
 			},
 		},
