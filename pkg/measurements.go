@@ -2,8 +2,8 @@ package pkg
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -75,7 +75,14 @@ func (m *Measurement) GetAllDeployments(ctx context.Context) (interface{}, error
 		fmt.Printf("%v\n", err)
 		return nil, err
 	}
-	log.Printf("%+v\n", &queryAllDeployments)
+
+	deploymentsJSON, err := json.Marshal(queryAllDeployments)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil, err
+	}
+	fmt.Printf("%s\n", deploymentsJSON)
+
 	return queryAllDeployments, err
 }
 
