@@ -16,7 +16,9 @@ type Measurement struct {
 
 var queryAllDeployments struct {
 	Repository struct {
+		Name        string
 		Description string
+		Url         string
 		Deployments struct {
 			PageInfo struct {
 				HasNextPage bool
@@ -27,19 +29,40 @@ var queryAllDeployments struct {
 				Environment  string
 				CreatedAt    string
 				LatestStatus struct {
-					CreatedAt string
+					State       string
+					CreatedAt   string
+					Description string
+					LogUrl      string
 				}
-				Commit struct {
+				Payload     string
+				Description string
+				Commit      struct {
 					AuthoredDate           string
 					AssociatedPullRequests struct {
+						PageInfo struct {
+							HasNextPage bool
+							EndCursor   string
+						}
 						Nodes []struct {
 							CreatedAt string
 						}
 					} `graphql:"associatedPullRequests(first:1)"`
 				}
+				Statuses struct {
+					PageInfo struct {
+						HasNextPage bool
+						EndCursor   string
+					}
+					Nodes []struct {
+						State       string
+						CreatedAt   string
+						Description string
+						LogUrl      string
+					}
+				} `graphql:"statuses(last: 100)"`
 			}
 		} `graphql:"deployments(first: 100, orderBy:{field:CREATED_AT, direction:DESC})"`
-	} `graphql:"repository(owner:$owner,name:$name)"`
+	} `graphql:"repository(owner:$owner, name:$name)"`
 }
 
 func (m *Measurement) GetAllDeployments(ctx context.Context) (interface{}, error) {
