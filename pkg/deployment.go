@@ -19,6 +19,8 @@ func (d *Deployment) CreateDeployment(ctx context.Context) error {
 		Task:                 github.String("deploy"),
 		Environment:          github.String(d.config.Environment),
 		TransientEnvironment: github.Bool(false),
+		// TODO make configurable
+		RequiredContexts: &[]string{},
 	}
 	createdDeployment, _, err := d.v3client.Repositories.CreateDeployment(ctx, d.config.GithubOwner, d.config.GithubRepo, createDeployment)
 	if err != nil {
