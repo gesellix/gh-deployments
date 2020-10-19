@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/urfave/cli/v2"
@@ -161,6 +163,53 @@ func main() {
 			Action: func(c *cli.Context) error {
 				m := pkg.NewMeasurement(ctx, config)
 				_, err := m.GetAllRepositories(ctx)
+				return err
+			},
+		},
+		{
+			Name:  "serve",
+			Flags: []cli.Flag{},
+			Action: func(c *cli.Context) error {
+				// e.g. curl 'http://localhost:8080/measurements?owner=gesellix&repo=gh-deployments'
+				http.HandleFunc("/measurements", func(w http.ResponseWriter, r *http.Request) {
+					owner := r.URL.Query().Get("owner")
+					if owner != "" {
+						config.GithubOwner = owner
+					}
+					repo := r.URL.Query().Get("repo")
+					if repo != "" {
+						config.GithubRepo = repo
+					}
+
+					m := pkg.NewMeasurement(ctx, config)
+					measures, err := m.GetAllDeployments(ctx)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					measuresJSON, err := json.Marshal(measures)
+					if err != nil {
+						panic(err)
+					}
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					_, err = w.Write(measuresJSON)
+					if err != nil {
+						panic(err)
+					}
+				})
+				http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+					_, err := fmt.Fprint(w, "OK")
+					if err != nil {
+						log.Fatal(err)
+					}
+				})
+
+				//fmt.Printf("Starting exporter version %s at '%s' to read from CouchDB at '%s'\n", version, exporterConfig.listenAddress, exporterConfig.couchdbURI)
+				err := http.ListenAndServe("0.0.0.0:8080", nil)
+				if err != nil {
+					log.Fatal(err)
+				}
 				return err
 			},
 		},
