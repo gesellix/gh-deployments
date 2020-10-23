@@ -15,9 +15,12 @@ type Deployment struct {
 
 func (d *Deployment) CreateDeployment(ctx context.Context) error {
 	createDeployment := &github.DeploymentRequest{
-		Ref:                  github.String(d.config.Ref),
-		Task:                 github.String("deploy"),
-		Environment:          github.String(d.config.Environment),
+		Ref:         github.String(d.config.Ref),
+		Task:        github.String("deploy"),
+		Environment: github.String(d.config.Environment),
+		Description: github.String(d.config.Description),
+		Payload:     github.String(d.config.Payload),
+		// TODO make configurable
 		TransientEnvironment: github.Bool(false),
 		// TODO make configurable
 		RequiredContexts: &[]string{},
