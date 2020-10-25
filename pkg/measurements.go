@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -16,21 +15,27 @@ type Measurement struct {
 	v4client *githubv4.Client
 }
 
-var queryAllRepositories struct {
+type PageInfo struct {
+	HasNextPage bool
+	EndCursor   githubv4.String
+}
+
+type Repository struct {
+	Name          string
+	NameWithOwner string
+	Url           string
+}
+
+type RepositoriesQuery struct {
 	Organization struct {
 		Repositories struct {
-			PageInfo struct {
-				HasNextPage bool
-				EndCursor   string
-			}
-			Nodes []struct {
-				Name          string
-				NameWithOwner string
-				Url           string
-			}
-		} `graphql:"repositories(first:100)"`
+			PageInfo PageInfo
+			Nodes    []Repository
+		} `graphql:"repositories(first:100, after: $repositoriesCursor)"`
 	} `graphql:"organization(login: $owner)"`
 }
+
+var queryAllRepositories RepositoriesQuery
 
 type DeploymentStatus struct {
 	Id        string
@@ -49,73 +54,76 @@ type DeploymentStatus struct {
 	}
 }
 
+type DeploymentType struct {
+	State       string
+	Environment string
+	Description string
+	Payload     string
+	CreatedAt   string
+	Creator     struct {
+		Login string
+	}
+	LatestStatus DeploymentStatus
+	Commit       struct {
+		AuthoredDate           string
+		Oid                    string
+		Url                    string
+		AssociatedPullRequests struct {
+			PageInfo PageInfo
+			Nodes    []struct {
+				CreatedAt string
+				Url       string
+			}
+		} `graphql:"associatedPullRequests(first:5)"`
+	}
+	Statuses struct {
+		PageInfo PageInfo
+		Nodes    []DeploymentStatus
+	} `graphql:"statuses(last: 100)"`
+}
+
 var queryAllDeployments struct {
 	Repository struct {
 		Name        string
 		Description string
 		Url         string
 		Deployments struct {
-			PageInfo struct {
-				HasNextPage bool
-				EndCursor   string
-			}
-			Nodes []struct {
-				State       string
-				Environment string
-				Description string
-				Payload     string
-				CreatedAt   string
-				Creator     struct {
-					Login string
-				}
-				LatestStatus DeploymentStatus
-				Commit       struct {
-					AuthoredDate           string
-					Oid                    string
-					Url                    string
-					AssociatedPullRequests struct {
-						PageInfo struct {
-							HasNextPage bool
-							EndCursor   string
-						}
-						Nodes []struct {
-							CreatedAt string
-							Url       string
-						}
-					} `graphql:"associatedPullRequests(first:5)"`
-				}
-				Statuses struct {
-					PageInfo struct {
-						HasNextPage bool
-						EndCursor   string
-					}
-					Nodes []DeploymentStatus
-				} `graphql:"statuses(last: 100)"`
-			}
+			PageInfo PageInfo
+			Nodes    []DeploymentType
 		} `graphql:"deployments(first: 100, orderBy:{field:CREATED_AT, direction:DESC})"`
 	} `graphql:"repository(owner:$owner, name:$name)"`
 }
 
-func (m *Measurement) GetAllRepositories(ctx context.Context) (interface{}, error) {
-	variables := map[string]interface{}{
-		"owner": githubv4.String(m.config.GithubOwner),
-	}
+func (m *Measurement) getRepositoriesPage(ctx context.Context, variables map[string]interface{}) (RepositoriesQuery, error) {
 	err := m.v4client.Query(ctx, &queryAllRepositories, variables)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		return nil, err
+		return RepositoriesQuery{}, err
 	}
-
-	// TODO Pagination
-
-	reposJSON, err := json.Marshal(queryAllRepositories)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		return nil, err
-	}
-	fmt.Printf("%s\n", reposJSON)
-
 	return queryAllRepositories, err
+}
+
+func (m *Measurement) GetAllRepositories(ctx context.Context) ([]Repository, error) {
+	var allRepos []Repository
+
+	variables := map[string]interface{}{
+		"owner":              githubv4.String(m.config.GithubOwner),
+		"repositoriesCursor": (*githubv4.String)(nil), // nil for the first page
+	}
+
+	for {
+		page, err := m.getRepositoriesPage(ctx, variables)
+		if err != nil {
+			return nil, err
+		}
+
+		allRepos = append(allRepos, page.Organization.Repositories.Nodes...)
+		if !page.Organization.Repositories.PageInfo.HasNextPage {
+			return allRepos, nil
+		}
+
+		variables["repositoriesCursor"] = githubv4.NewString(page.Organization.Repositories.PageInfo.EndCursor)
+	}
 }
 
 func (m *Measurement) GetAllDeployments(ctx context.Context) (interface{}, error) {
@@ -128,13 +136,6 @@ func (m *Measurement) GetAllDeployments(ctx context.Context) (interface{}, error
 		fmt.Printf("%v\n", err)
 		return nil, err
 	}
-
-	deploymentsJSON, err := json.Marshal(queryAllDeployments)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		return nil, err
-	}
-	fmt.Printf("%s\n", deploymentsJSON)
 
 	return queryAllDeployments, err
 }

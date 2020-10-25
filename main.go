@@ -153,7 +153,15 @@ func main() {
 			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) error {
 				m := pkg.NewMeasurement(ctx, config)
-				_, err := m.GetAllDeployments(ctx)
+				deployments, err := m.GetAllDeployments(ctx)
+
+				deploymentsJSON, err := json.Marshal(deployments)
+				if err != nil {
+					fmt.Printf("%v\n", err)
+					return err
+				}
+				fmt.Printf("%s\n", deploymentsJSON)
+
 				return err
 			},
 		},
@@ -162,7 +170,15 @@ func main() {
 			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) error {
 				m := pkg.NewMeasurement(ctx, config)
-				_, err := m.GetAllRepositories(ctx)
+				repos, err := m.GetAllRepositories(ctx)
+
+				reposJSON, err := json.Marshal(repos)
+				if err != nil {
+					fmt.Printf("%v\n", err)
+					return err
+				}
+				fmt.Printf("%s\n", reposJSON)
+
 				return err
 			},
 		},
