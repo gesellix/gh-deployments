@@ -146,15 +146,6 @@ type withPreviewHeader struct {
 	previewHeaders []string
 }
 
-func WithPreviewHeader(rt http.RoundTripper, previewHeaders []string) withPreviewHeader {
-	if rt == nil {
-		rt = http.DefaultTransport
-	}
-
-	headers := make(http.Header)
-	return withPreviewHeader{Header: headers, rt: rt, previewHeaders: previewHeaders}
-}
-
 func (h withPreviewHeader) RoundTrip(req *http.Request) (*http.Response, error) {
 	for k, v := range h.Header {
 		req.Header[k] = v
@@ -164,6 +155,15 @@ func (h withPreviewHeader) RoundTrip(req *http.Request) (*http.Response, error) 
 	// shadow-cat-preview: Draft pull requests
 	req.Header.Set("Accept", fmt.Sprintf("%s,%s", currentAccept, strings.Join(h.previewHeaders, ",")))
 	return h.rt.RoundTrip(req)
+}
+
+func roundTripperWithPreviewHeader(rt http.RoundTripper, previewHeaders []string) withPreviewHeader {
+	if rt == nil {
+		rt = http.DefaultTransport
+	}
+
+	headers := make(http.Header)
+	return withPreviewHeader{Header: headers, rt: rt, previewHeaders: previewHeaders}
 }
 
 func NewMeasurement(ctx context.Context, config Config) *Measurement {
@@ -178,7 +178,7 @@ func NewMeasurement(ctx context.Context, config Config) *Measurement {
 		"application/vnd.github.flash-preview+json",
 		"application/vnd.github.shadow-cat-preview+json",
 	}
-	tc.Transport = WithPreviewHeader(tc.Transport, previewV4Headers)
+	tc.Transport = roundTripperWithPreviewHeader(tc.Transport, previewV4Headers)
 
 	return &Measurement{
 		config:   config,
